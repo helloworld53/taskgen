@@ -22,11 +22,18 @@ class Ranker(BaseRanker):
     def __call__(self, query, key) -> float:
         query, key = str(query), str(key)
         if self.ranking_fn is None:
-            from openai import OpenAI
-            client = OpenAI()
-            query_embedding = self.get_or_create_embedding(query, client)
-            key_embedding = self.get_or_create_embedding(key, client)
-            return np.dot(query_embedding, key_embedding)
+            if os.environ.get("OPENAI_API_KEY") is None:
+                from sentence_transformers import SentenceTransformer
+                model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+                query_embedding =  model.encode(query)
+                key_embedding = model.encode(key)
+                return np.dot(query_embedding, key_embedding)                                               
+            else:
+                from openai import OpenAI
+                client = OpenAI()
+                query_embedding = self.get_or_create_embedding(query, client)
+                key_embedding = self.get_or_create_embedding(key, client)
+                return np.dot(query_embedding, key_embedding)
         else:
             return self.ranking_fn(query, key)
 
